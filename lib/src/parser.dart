@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:enough_convert/enough_convert.dart';
-import 'package:flutter_msg_parser/src/data_classes.dart';
+import 'package:msgexp/src/src/parser.dart';
+
+import 'data_classes.dart';
 
 /// Parse Micorsoft Mail Message (Outlook) MSG binary file from [data] byte array
 /// Returns typed [MsgParseResult] containing the
@@ -43,8 +45,8 @@ MsgParseResult parseMsg(Uint8List data) {
     subject: result['fieldsData']['subject'],
     from: result['fieldsData']['senderName'],
     recipients: (result['fieldsData']['recipients'] as List)
-        .map((e) => MsgEmailAddress(name: e['name'], email: e['email']))
-        .toList(),
+         .map((e) => MsgEmailAddress(name: e['name']))
+         .toList(),
     text: result['fieldsData']['body'],
     html: result['fieldsData']['bodyHTML'],
     attachments: attachments,
@@ -52,144 +54,144 @@ MsgParseResult parseMsg(Uint8List data) {
 }
 
 typedef MsgInnerHeader = ({
-  int PROPERTY_START_OFFSET,
-  int BAT_START_OFFSET,
-  int BAT_COUNT_OFFSET,
-  int SBAT_START_OFFSET,
-  int SBAT_COUNT_OFFSET,
-  int XBAT_START_OFFSET,
-  int XBAT_COUNT_OFFSET,
+int PROPERTY_START_OFFSET,
+int BAT_START_OFFSET,
+int BAT_COUNT_OFFSET,
+int SBAT_START_OFFSET,
+int SBAT_COUNT_OFFSET,
+int XBAT_START_OFFSET,
+int XBAT_COUNT_OFFSET,
 });
 
 typedef MsgInnerTypeEnum = ({
-  int DIRECTORY,
-  int DOCUMENT,
-  int ROOT,
+int DIRECTORY,
+int DOCUMENT,
+int ROOT,
 });
 
 typedef MsgInnerProperty = ({
-  int NO_INDEX,
-  int PROPERTY_SIZE,
-  int NAME_SIZE_OFFSET,
-  int MAX_NAME_LENGTH,
-  int TYPE_OFFSET,
-  int PREVIOUS_PROPERTY_OFFSET,
-  int NEXT_PROPERTY_OFFSET,
-  int CHILD_PROPERTY_OFFSET,
-  int START_BLOCK_OFFSET,
-  int SIZE_OFFSET,
-  MsgInnerTypeEnum TYPE_ENUM,
+int NO_INDEX,
+int PROPERTY_SIZE,
+int NAME_SIZE_OFFSET,
+int MAX_NAME_LENGTH,
+int TYPE_OFFSET,
+int PREVIOUS_PROPERTY_OFFSET,
+int NEXT_PROPERTY_OFFSET,
+int CHILD_PROPERTY_OFFSET,
+int START_BLOCK_OFFSET,
+int SIZE_OFFSET,
+MsgInnerTypeEnum TYPE_ENUM,
 });
 
 typedef MsgInnerField = ({
-  Map<String, String> PREFIX,
-  Map<String, String> NAME_MAPPING,
-  Map<String, String> CLASS_MAPPING,
-  Map<String, String> TYPE_MAPPING,
-  Map<String, String> DIR_TYPE,
+Map<String, String> PREFIX,
+Map<String, String> NAME_MAPPING,
+Map<String, String> CLASS_MAPPING,
+Map<String, String> TYPE_MAPPING,
+Map<String, String> DIR_TYPE,
 });
 
 typedef MsgInnerConstants = ({
-  int UNUSED_BLOCK,
-  int END_OF_CHAIN,
-  int S_BIG_BLOCK_SIZE,
-  int S_BIG_BLOCK_MARK,
-  int L_BIG_BLOCK_SIZE,
-  int L_BIG_BLOCK_MARK,
-  int SMALL_BLOCK_SIZE,
-  int BIG_BLOCK_MIN_DOC_SIZE,
-  MsgInnerHeader HEADER,
-  MsgInnerProperty PROP,
-  MsgInnerField FIELD,
+int UNUSED_BLOCK,
+int END_OF_CHAIN,
+int S_BIG_BLOCK_SIZE,
+int S_BIG_BLOCK_MARK,
+int L_BIG_BLOCK_SIZE,
+int L_BIG_BLOCK_MARK,
+int SMALL_BLOCK_SIZE,
+int BIG_BLOCK_MIN_DOC_SIZE,
+MsgInnerHeader HEADER,
+MsgInnerProperty PROP,
+MsgInnerField FIELD,
 });
 
 typedef MsgConstants = ({
-  List<int> FILE_HEADER,
-  MsgInnerConstants MSG,
+List<int> FILE_HEADER,
+MsgInnerConstants MSG,
 });
 
 /// Constants used in the parser
 var _constants = (
-  FILE_HEADER: _uInt2int([
-    0xD0,
-    0xCF,
-    0x11,
-    0xE0,
-    0xA1,
-    0xB1,
-    0x1A,
-    0xE1,
-  ]),
-  MSG: (
-    UNUSED_BLOCK: -1,
-    END_OF_CHAIN: -2,
-    S_BIG_BLOCK_SIZE: 0x0200,
-    S_BIG_BLOCK_MARK: 9,
-    L_BIG_BLOCK_SIZE: 0x1000,
-    L_BIG_BLOCK_MARK: 12,
-    SMALL_BLOCK_SIZE: 0x0040,
-    BIG_BLOCK_MIN_DOC_SIZE: 0x1000,
-    HEADER: (
-      PROPERTY_START_OFFSET: 0x30,
-      BAT_START_OFFSET: 0x4c,
-      BAT_COUNT_OFFSET: 0x2C,
-      SBAT_START_OFFSET: 0x3C,
-      SBAT_COUNT_OFFSET: 0x40,
-      XBAT_START_OFFSET: 0x44,
-      XBAT_COUNT_OFFSET: 0x48,
-    ),
-    PROP: (
-      NO_INDEX: -1,
-      PROPERTY_SIZE: 0x0080,
-      NAME_SIZE_OFFSET: 0x40,
-      MAX_NAME_LENGTH: (/*NAME_SIZE_OFFSET*/ 0x40 / 2) - 1,
-      TYPE_OFFSET: 0x42,
-      PREVIOUS_PROPERTY_OFFSET: 0x44,
-      NEXT_PROPERTY_OFFSET: 0x48,
-      CHILD_PROPERTY_OFFSET: 0x4C,
-      START_BLOCK_OFFSET: 0x74,
-      SIZE_OFFSET: 0x78,
-      TYPE_ENUM: (
-        DIRECTORY: 1,
-        DOCUMENT: 2,
-        ROOT: 5,
-      )
-    ),
-    FIELD: (
-      PREFIX: (
-        ATTACHMENT: '__attach_version1.0',
-        RECIPIENT: '__recip_version1.0',
-        DOCUMENT: '__substg1.',
-      ),
-      NAME_MAPPING: {
-        '0037': 'subject',
-        '0c1a': 'senderName',
-        '5d02': 'senderEmail',
-        '1000': 'body',
-        '1013': 'bodyHTML',
-        '1009': 'rtfBody',
-        '007d': 'headers',
-        '3703': 'extension',
-        '3704': 'fileNameShort',
-        '3707': 'fileName',
-        '3712': 'pidContentId',
-        '370e': 'mimeType',
-        '3001': 'name',
-        '39fe': 'email',
-      },
-      CLASS_MAPPING: {
-        'ATTACHMENT_DATA': '3701',
-      },
-      TYPE_MAPPING: {
-        '001e': 'string',
-        '001f': 'unicode',
-        '0102': 'binary',
-      },
-      DIR_TYPE: {
-        'INNER_MSG': '000d',
-      }
-    )
-  ),
+FILE_HEADER: _uInt2int([
+  0xD0,
+  0xCF,
+  0x11,
+  0xE0,
+  0xA1,
+  0xB1,
+  0x1A,
+  0xE1,
+]),
+MSG: (
+UNUSED_BLOCK: -1,
+END_OF_CHAIN: -2,
+S_BIG_BLOCK_SIZE: 0x0200,
+S_BIG_BLOCK_MARK: 9,
+L_BIG_BLOCK_SIZE: 0x1000,
+L_BIG_BLOCK_MARK: 12,
+SMALL_BLOCK_SIZE: 0x0040,
+BIG_BLOCK_MIN_DOC_SIZE: 0x1000,
+HEADER: (
+PROPERTY_START_OFFSET: 0x30,
+BAT_START_OFFSET: 0x4c,
+BAT_COUNT_OFFSET: 0x2C,
+SBAT_START_OFFSET: 0x3C,
+SBAT_COUNT_OFFSET: 0x40,
+XBAT_START_OFFSET: 0x44,
+XBAT_COUNT_OFFSET: 0x48,
+),
+PROP: (
+NO_INDEX: -1,
+PROPERTY_SIZE: 0x0080,
+NAME_SIZE_OFFSET: 0x40,
+MAX_NAME_LENGTH: (/*NAME_SIZE_OFFSET*/ 0x40 / 2) - 1,
+TYPE_OFFSET: 0x42,
+PREVIOUS_PROPERTY_OFFSET: 0x44,
+NEXT_PROPERTY_OFFSET: 0x48,
+CHILD_PROPERTY_OFFSET: 0x4C,
+START_BLOCK_OFFSET: 0x74,
+SIZE_OFFSET: 0x78,
+TYPE_ENUM: (
+DIRECTORY: 1,
+DOCUMENT: 2,
+ROOT: 5,
+)
+),
+FIELD: (
+PREFIX: (
+ATTACHMENT: '__attach_version1.0',
+RECIPIENT: '__recip_version1.0',
+DOCUMENT: '__substg1.',
+),
+NAME_MAPPING: {
+  '0037': 'subject',
+  '0c1a': 'senderName',
+  '5d02': 'senderEmail',
+  '1000': 'body',
+  '1013': 'bodyHTML',
+  '1009': 'rtfBody',
+  '007d': 'headers',
+  '3703': 'extension',
+  '3704': 'fileNameShort',
+  '3707': 'fileName',
+  '3712': 'pidContentId',
+  '370e': 'mimeType',
+  '3001': 'name',
+  '39fe': 'email',
+},
+CLASS_MAPPING: {
+  'ATTACHMENT_DATA': '3701',
+},
+TYPE_MAPPING: {
+  '001e': 'string',
+  '001f': 'unicode',
+  '0102': 'binary',
+},
+DIR_TYPE: {
+  'INNER_MSG': '000d',
+}
+)
+),
 );
 
 // poor mans rtf to html converter
@@ -206,7 +208,7 @@ String _rtfToHtml(String rtf) {
   rtfStripped = rtfStripped.replaceAll(RegExp('{\\\\pntext \\*\\\\tab}'), '');
 
   final regEx =
-      RegExp('^{\\\\\\*\\\\htmltag[0-9]+[ ]?(.+)}([^}{]*)\$', multiLine: true);
+  RegExp('^{\\\\\\*\\\\htmltag[0-9]+[ ]?(.+)}([^}{]*)\$', multiLine: true);
   regEx.allMatches(rtfStripped).forEach((match) {
     if (match.group(1) != null) {
       html += match.group(1)!;
@@ -229,16 +231,16 @@ List<int> _uInt2int(data) {
 }
 
 Uint8List _getAttachmentData(
-  Map<String, dynamic> result,
-  ByteData bytedata,
-  dataId,
-) {
+    Map<String, dynamic> result,
+    ByteData bytedata,
+    dataId,
+    ) {
   if (result["propertyData"] == null) {
     return Uint8List(0);
   }
   var fieldProperty = result["propertyData"][dataId];
   String fieldTypeMapped =
-      _constants.MSG.FIELD.TYPE_MAPPING[_getFieldType(fieldProperty)]!;
+  _constants.MSG.FIELD.TYPE_MAPPING[_getFieldType(fieldProperty)]!;
   var fieldData = _getFieldValue(
     bytedata,
     result,
@@ -263,9 +265,9 @@ Map<String, dynamic> _headerData(ByteData byteData) {
 
   // system data
   headerData["bigBlockSize"] =
-      byteData.getInt8(30) == _constants.MSG.L_BIG_BLOCK_MARK
-          ? _constants.MSG.L_BIG_BLOCK_SIZE
-          : _constants.MSG.S_BIG_BLOCK_SIZE;
+  byteData.getInt8(30) == _constants.MSG.L_BIG_BLOCK_MARK
+      ? _constants.MSG.L_BIG_BLOCK_SIZE
+      : _constants.MSG.S_BIG_BLOCK_SIZE;
 
   headerData["bigBlockLength"] = (headerData["bigBlockSize"] / 4).floor();
   headerData["xBlockLength"] = headerData["bigBlockLength"] - 1;
@@ -303,7 +305,7 @@ Map<String, dynamic> _parseMsgData(ByteData byteData) {
 
 int _batCountInHeader(Map<String, dynamic> msgData) {
   var maxBatsInHeader = (_constants.MSG.S_BIG_BLOCK_SIZE -
-          _constants.MSG.HEADER.BAT_START_OFFSET) /
+      _constants.MSG.HEADER.BAT_START_OFFSET) /
       4;
   return (msgData['batCount'] < maxBatsInHeader)
       ? msgData['batCount']
@@ -311,9 +313,9 @@ int _batCountInHeader(Map<String, dynamic> msgData) {
 }
 
 List<int> _batData(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    ) {
   var result = List<int>.filled(_batCountInHeader(msgData), 0);
   int position = _constants.MSG.HEADER.BAT_START_OFFSET;
   for (var i = 0; i < result.length; i++) {
@@ -324,17 +326,17 @@ List<int> _batData(
 }
 
 int _getBlockOffsetAt(
-  Map<String, dynamic> msgData,
-  int offset,
-) {
+    Map<String, dynamic> msgData,
+    int offset,
+    ) {
   return (offset + 1) * (msgData['bigBlockSize'] as int);
 }
 
 List<int> _getBlockAt(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  int offset,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    int offset,
+    ) {
   var startOffset = _getBlockOffsetAt(msgData, offset);
   var len = msgData['bigBlockLength'];
   List<int> result = [];
@@ -348,11 +350,11 @@ List<int> _getBlockAt(
 }
 
 int _getNextBlockInner(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  int offset,
-  blockOffsetData,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    int offset,
+    blockOffsetData,
+    ) {
   var currentBlock = (offset / (msgData['bigBlockLength'] as int)).floor();
   var currentBlockIndex = offset % (msgData['bigBlockLength'] as int);
 
@@ -362,31 +364,31 @@ int _getNextBlockInner(
 }
 
 int _getNextBlock(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  int offset,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    int offset,
+    ) {
   return _getNextBlockInner(byteData, msgData, offset, msgData['batData']);
 }
 
 int _getNextBlockSmall(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  offset,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    offset,
+    ) {
   return _getNextBlockInner(byteData, msgData, offset, msgData['sbatData']);
 }
 
 List<int> _sbatData(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    ) {
   final result = <int>[];
   var startIndex = msgData['sbatStart'];
 
   for (var i = 0;
-      i < msgData['sbatCount'] && startIndex != _constants.MSG.END_OF_CHAIN;
-      i++) {
+  i < msgData['sbatCount'] && startIndex != _constants.MSG.END_OF_CHAIN;
+  i++) {
     result.add(startIndex);
     startIndex = _getNextBlock(
       byteData,
@@ -398,9 +400,9 @@ List<int> _sbatData(
 }
 
 void _xbatData(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    ) {
   var batCount = _batCountInHeader(msgData);
   var batCountTotal = msgData['batCount'];
   var remainingBlocks = batCountTotal - batCount;
@@ -430,9 +432,9 @@ void _xbatData(
 }
 
 List<Map<String, dynamic>?> _propertyData(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    ) {
   final props = <Map<String, dynamic>?>[];
 
   var currentOffset = msgData['propertyStart'];
@@ -457,9 +459,9 @@ List<Map<String, dynamic>?> _propertyData(
 }
 
 String _convertName(
-  ByteData byteData,
-  int offset,
-) {
+    ByteData byteData,
+    int offset,
+    ) {
   final nameLength = byteData.getInt16(
       offset + (_constants.MSG.PROP.NAME_SIZE_OFFSET), Endian.little);
   if (nameLength < 1) {
@@ -470,10 +472,10 @@ String _convertName(
 }
 
 String _readStringAt(
-  ByteData byteData,
-  int offset,
-  length,
-) {
+    ByteData byteData,
+    int offset,
+    length,
+    ) {
   var result = '';
   for (var i = 0; i < length; i++) {
     result +=
@@ -483,10 +485,10 @@ String _readStringAt(
 }
 
 String _readUcsStringAt(
-  ByteData byteData,
-  int offset,
-  length,
-) {
+    ByteData byteData,
+    int offset,
+    length,
+    ) {
   var result = '';
   for (var i = 0; i < length; i++) {
     result +=
@@ -496,19 +498,19 @@ String _readUcsStringAt(
 }
 
 Uint8List _readUint8listAt(
-  ByteData byteData,
-  int offset,
-  length,
-) {
+    ByteData byteData,
+    int offset,
+    length,
+    ) {
   return Uint8List(length)
     ..setRange(0, length, byteData.buffer.asUint8List(offset, length));
 }
 
 Map<String, dynamic> _convertProperty(
-  ByteData byteData,
-  index,
-  int offset,
-) {
+    ByteData byteData,
+    index,
+    int offset,
+    ) {
   return {
     'index': index,
     'type': byteData.getInt8(offset + (_constants.MSG.PROP.TYPE_OFFSET)),
@@ -527,18 +529,18 @@ Map<String, dynamic> _convertProperty(
 }
 
 void _convertBlockToProperties(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  propertyBlockOffset,
-  props,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    propertyBlockOffset,
+    props,
+    ) {
   var propertyCount =
       msgData['bigBlockSize'] ~/ _constants.MSG.PROP.PROPERTY_SIZE;
   var propertyOffset = _getBlockOffsetAt(msgData, propertyBlockOffset);
 
   for (var i = 0; i < propertyCount; i++) {
     var propertyType =
-        byteData.getInt8(propertyOffset + _constants.MSG.PROP.TYPE_OFFSET);
+    byteData.getInt8(propertyOffset + _constants.MSG.PROP.TYPE_OFFSET);
 
     if (propertyType == _constants.MSG.PROP.TYPE_ENUM.ROOT ||
         propertyType == _constants.MSG.PROP.TYPE_ENUM.DIRECTORY ||
@@ -554,9 +556,9 @@ void _convertBlockToProperties(
 }
 
 void _createPropertyHierarchy(
-  List<Map<String, dynamic>?> props,
-  Map<String, dynamic> nodeProperty,
-) {
+    List<Map<String, dynamic>?> props,
+    Map<String, dynamic> nodeProperty,
+    ) {
   if (nodeProperty['childProperty'] == _constants.MSG.PROP.NO_INDEX) {
     return;
   }
@@ -584,9 +586,9 @@ void _createPropertyHierarchy(
 }
 
 Map<String, dynamic> _fieldsData(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    ) {
   var fields = <String, dynamic>{'attachments': [], 'recipients': []};
   _fieldsDataDir(
     byteData,
@@ -598,11 +600,11 @@ Map<String, dynamic> _fieldsData(
 }
 
 void _fieldsDataDir(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  Map<String, dynamic> dirProperty,
-  Map<String, dynamic> fields,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    Map<String, dynamic> dirProperty,
+    Map<String, dynamic> fields,
+    ) {
   if (dirProperty['children'] != null && dirProperty['children'].length > 0) {
     for (var i = 0; i < dirProperty['children'].length; i++) {
       var childProperty = msgData['propertyData'][dirProperty['children'][i]];
@@ -615,7 +617,7 @@ void _fieldsDataDir(
           fields,
         );
       } else if (childProperty['type'] ==
-              _constants.MSG.PROP.TYPE_ENUM.DOCUMENT &&
+          _constants.MSG.PROP.TYPE_ENUM.DOCUMENT &&
           childProperty['name'].indexOf(_constants.MSG.FIELD.PREFIX.DOCUMENT) ==
               0) {
         _fieldsDataDocument(
@@ -630,11 +632,11 @@ void _fieldsDataDir(
 }
 
 void _fieldsDataDirInner(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  Map<String, dynamic> dirProperty,
-  Map<String, dynamic> fields,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    Map<String, dynamic> dirProperty,
+    Map<String, dynamic> fields,
+    ) {
   if (dirProperty['name'].indexOf(_constants.MSG.FIELD.PREFIX.ATTACHMENT) ==
       0) {
     var attachmentField = <String, dynamic>{};
@@ -646,7 +648,7 @@ void _fieldsDataDirInner(
       attachmentField,
     );
   } else if (dirProperty['name']
-          .indexOf(_constants.MSG.FIELD.PREFIX.RECIPIENT) ==
+      .indexOf(_constants.MSG.FIELD.PREFIX.RECIPIENT) ==
       0) {
     var recipientField = <String, dynamic>{};
     fields['recipients'].add(recipientField);
@@ -672,18 +674,18 @@ void _fieldsDataDirInner(
 }
 
 bool _isAddPropertyValue(
-  String fieldName,
-  String fieldTypeMapped,
-) {
+    String fieldName,
+    String fieldTypeMapped,
+    ) {
   return fieldName != 'body' || fieldTypeMapped != 'binary';
 }
 
 void _fieldsDataDocument(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  Map<String, dynamic> documentProperty,
-  Map<String, dynamic> fields,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    Map<String, dynamic> documentProperty,
+    Map<String, dynamic> fields,
+    ) {
   var name = documentProperty['name'] as String? ?? '';
 
   if (name.length < 12) {
@@ -777,7 +779,7 @@ String _decompressRTF(Uint8List src) {
           int offset = src[inPos++] & 0xFF;
           int length = src[inPos++] & 0xFF;
           offset =
-              (offset << 4) | (length >>> 4); // the offset from block start
+          (offset << 4) | (length >>> 4); // the offset from block start
           length = (length & 0xF) + 2; // the number of bytes to copy
           // the decompression buffer is supposed to wrap around back
           // to the beginning when the end is reached. we save the
@@ -815,10 +817,10 @@ String _decompressRTF(Uint8List src) {
 }
 
 dynamic _applyValueConverter(
-  String fieldName,
-  String fieldTypeMapped,
-  fieldValue,
-) {
+    String fieldName,
+    String fieldTypeMapped,
+    fieldValue,
+    ) {
   if (fieldTypeMapped == 'binary' && fieldName == 'bodyHTML') {
     return _convertUint8ArrayToString(fieldValue);
   }
@@ -834,11 +836,11 @@ String _getFieldType(Map<String, dynamic> fieldProperty) {
 var _extractorFieldValue = {
   'sbat': {
     'extractor': (
-      ByteData byteData,
-      msgData,
-      fieldProperty,
-      dataTypeExtractor,
-    ) {
+        ByteData byteData,
+        msgData,
+        fieldProperty,
+        dataTypeExtractor,
+        ) {
       var chain = _getChainByBlockSmall(
         byteData,
         msgData,
@@ -865,12 +867,12 @@ var _extractorFieldValue = {
     },
     'dataType': {
       'string': (
-        ByteData byteData,
-        msgData,
-        blockStartOffset,
-        bigBlockOffset,
-        blockSize,
-      ) {
+          ByteData byteData,
+          msgData,
+          blockStartOffset,
+          bigBlockOffset,
+          blockSize,
+          ) {
         return _readStringAt(
           byteData,
           blockStartOffset + bigBlockOffset,
@@ -878,12 +880,12 @@ var _extractorFieldValue = {
         );
       },
       'unicode': (
-        ByteData byteData,
-        msgData,
-        blockStartOffset,
-        bigBlockOffset,
-        blockSize,
-      ) {
+          ByteData byteData,
+          msgData,
+          blockStartOffset,
+          bigBlockOffset,
+          blockSize,
+          ) {
         return _readUcsStringAt(
           byteData,
           blockStartOffset + bigBlockOffset,
@@ -891,12 +893,12 @@ var _extractorFieldValue = {
         );
       },
       'binary': (
-        ByteData byteData,
-        msgData,
-        blockStartOffset,
-        bigBlockOffset,
-        blockSize,
-      ) {
+          ByteData byteData,
+          msgData,
+          blockStartOffset,
+          bigBlockOffset,
+          blockSize,
+          ) {
         return _readUint8listAt(
           byteData,
           blockStartOffset + bigBlockOffset,
@@ -942,12 +944,12 @@ var _extractorFieldValue = {
 };
 
 _readDataByBlockSmall(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  int startBlock,
-  int blockSize,
-  dataTypeExtractor,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    int startBlock,
+    int blockSize,
+    dataTypeExtractor,
+    ) {
   var byteOffset = startBlock * _constants.MSG.SMALL_BLOCK_SIZE;
   var bigBlockNumber = (byteOffset / msgData['bigBlockSize']).floor();
   var bigBlockOffset = byteOffset % msgData['bigBlockSize'];
@@ -967,12 +969,12 @@ _readDataByBlockSmall(
 }
 
 _readChainDataByBlockSmall(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  Map<String, dynamic> fieldProperty,
-  chain,
-  dataTypeExtractor,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    Map<String, dynamic> fieldProperty,
+    chain,
+    dataTypeExtractor,
+    ) {
   var resultData = Uint8List(fieldProperty['sizeBlock']);
   for (var i = 0, idx = 0; i < chain.length; i++) {
     var data = _readDataByBlockSmall(
@@ -998,10 +1000,10 @@ _readChainDataByBlockSmall(
 }
 
 List<dynamic> _getChainByBlockSmall(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  Map<String, dynamic> fieldProperty,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    Map<String, dynamic> fieldProperty,
+    ) {
   var blockChain = [];
   var nextBlockSmall = fieldProperty['startBlock'];
   while (nextBlockSmall != _constants.MSG.END_OF_CHAIN) {
@@ -1016,16 +1018,16 @@ List<dynamic> _getChainByBlockSmall(
 }
 
 _getFieldValue(
-  ByteData byteData,
-  Map<String, dynamic> msgData,
-  Map<String, dynamic> fieldProperty,
-  String typeMapped,
-) {
+    ByteData byteData,
+    Map<String, dynamic> msgData,
+    Map<String, dynamic> fieldProperty,
+    String typeMapped,
+    ) {
   dynamic value;
   var valueExtractor =
-      fieldProperty['sizeBlock'] < _constants.MSG.BIG_BLOCK_MIN_DOC_SIZE
-          ? _extractorFieldValue['sbat']
-          : _extractorFieldValue['bat'];
+  fieldProperty['sizeBlock'] < _constants.MSG.BIG_BLOCK_MIN_DOC_SIZE
+      ? _extractorFieldValue['sbat']
+      : _extractorFieldValue['bat'];
   var dataTypeExtractor = (valueExtractor?['dataType'] as Map)[typeMapped];
   if (dataTypeExtractor != null) {
     value = (valueExtractor?['extractor'] as Function?)?.call(
