@@ -20,11 +20,9 @@ class MsgEmailAttachment {
 
 class MsgEmailAddress {
   final String name;
-  final String email;
 
   MsgEmailAddress({
     required this.name,
-    required this.email,
   });
 }
 
@@ -56,4 +54,4 @@ class MsgParseResult {
     this.html,
     this.attachments,
   });
-}
+}// TODO Implement this library.
